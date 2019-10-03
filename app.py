@@ -5,7 +5,7 @@ import re
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_object('config.Test')
+app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
 # Setting Database
