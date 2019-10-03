@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import pymongo
 import json
+import re
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
@@ -21,6 +22,84 @@ def is_num(val):
     else:
         return True
 
+def check_json(jsondata):
+    data = jsondata.decode('utf-8')
+    try:
+        data = json.loads(data)
+    except Exception:
+        return None
+    return data
+
+def check_location(location, result):
+    if not isinstance(location, list):
+        result['isSave'] = 2
+        result['errorstr'] = 'locationが配列形式ではありません。'
+    elif len(location) != 2:
+        result['isSave'] = 3
+        result['errorstr'] = 'locationの要素数が2ではありません。'
+    elif not(is_num(location[0]) and is_num(location[1])):
+        result['isSave'] = 4
+        result['errorstr'] = 'locationが数値ではありません。'
+    elif location[0] < -90 or 90 < location[0]:
+        result['isSave'] = 5
+        result['errorstr'] = '緯度の値が異常です。'
+    elif location[1] < -180 or 180 < location[1]:
+        result['isSave'] = 6
+        result['errorstr'] = '経度の値が異常です。'
+    return
+
+
+
+@app.route('/sendLocation', methods=['POST'])
+def send_location():
+    result = {
+        'isSave': 0,
+        'errorstr': None,
+        'locationData': None
+    }
+    query = {}
+    limitdata = app.config['MAX_DATA']
+
+    # jsonチェック
+    data = check_json(request.data)
+    if data == None:
+        result['isSave'] = 100
+        result['errorstr'] = 'jsonが異常です。'
+        return jsonify(result)
+    
+    if 'location' in data:
+        check_location(data['location'], result)
+        query['location'] = { '$near': data['location']}
+    if 'title' in data:
+        if isinstance(data['title'], str):
+            query['title'] = re.compile(data['title'])
+        else:
+            result['isSave'] = 11
+            result['errorstr'] = 'titleが文字列ではありません。'
+
+    if 'description' in data:
+        if isinstance(data['description'], str):
+            query['description'] = re.compile(data['description'])
+        else:
+            result['isSave'] = 12
+            result['errorstr'] = 'descriptionが文字列ではありません。'
+    if 'limit' in data:
+        if isinstance(data['limit'], int): 
+            limitdata = data['limit']
+        else:
+            result['isSave'] = 13
+            result['errorstr'] = 'limitが1〜' + str(limit) + 'ではありません。'
+    
+    if result['isSave'] == 0:
+        print(query)
+        result['locationData'] = list(collection.find(query, {'_id': False}).limit(limitdata))
+        print(result['locationData'])
+    
+    return jsonify(result)
+
+
+
+
 @app.route('/saveLocation', methods=['POST'])
 def save_location():
     result = {
@@ -29,33 +108,18 @@ def save_location():
     }
 
     # jsonチェック
-    data = request.data.decode('utf-8')
-    try:
-        data = json.loads(data)
-    except Exception:
+    data = check_json(request.data)
+    if data == None:
         result['isSave'] = 100
         result['errorstr'] = 'jsonが異常です。'
         return jsonify(result)
 
-    if not 'location' in data:
+    if 'location' in data:
+        check_location(data['location'], result)
+    else:
         result['isSave'] = 1
         result['errorstr'] = 'locationがありません。'
-    elif not isinstance(data['location'], list):
-        result['isSave'] = 2
-        result['errorstr'] = 'locationが配列形式ではありません。'
-    elif len(data['location']) != 2:
-        result['isSave'] = 3
-        result['errorstr'] = 'locationの要素数が2ではありません。'
-    elif not(is_num(data['location'][0]) and is_num(data['location'][1])):
-        result['isSave'] = 4
-        result['errorstr'] = 'locationが数値ではありません。'
-    elif data['location'][0] < -90 or 90 < data['location'][0]:
-        result['isSave'] = 5
-        result['errorstr'] = '緯度の値が異常です。'
-    elif data['location'][1] < -180 or 180 < data['location'][1]:
-        result['isSave'] = 6
-        result['errorstr'] = '経度の値が異常です。'
-    
+
     if result['isSave'] == 0:
         insertData = {
             'location': data['location'],
