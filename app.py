@@ -5,7 +5,7 @@ import re
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_object('config.Test')
+app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
 # Setting Database
@@ -15,6 +15,10 @@ collection = db[app.config['NAME_COLLECTION']]
 collection.create_index([('location', pymongo.GEO2D)])
 
 def is_num(val):
+    if val == None:
+        return False
+    if not(isinstance(val, int) or isinstance(val, str) or isinstance(val, float)):
+        return False
     try:
         float(val)
     except ValueError:
@@ -49,8 +53,7 @@ def check_location(location, result):
     return
 
 
-
-@app.route('/sendLocation', methods=['POST'])
+@app.route('/sendLocation', methods=['GET', 'POST'])
 def send_location():
     result = {
         'isSave': 0,
@@ -58,37 +61,52 @@ def send_location():
         'locationData': None
     }
     query = {}
-    limitdata = app.config['MAX_DATA']
 
-    # jsonチェック
-    data = check_json(request.data)
-    if data == None:
-        result['isSave'] = 100
-        result['errorstr'] = 'jsonが異常です。'
-        return jsonify(result)
-    
-    if 'location' in data:
-        check_location(data['location'], result)
-        query['location'] = { '$near': data['location']}
-    if 'title' in data:
-        if isinstance(data['title'], str):
-            query['title'] = re.compile(data['title'])
+    # パラメータ抽出
+    if request.method == 'POST':
+        data = check_json(request.data)
+        if data == None:
+            result['isSave'] = 100
+            result['errorstr'] = 'jsonが異常です。'
+            return jsonify(result)
+        
+        location    = data['location']    if 'location'    in data else None
+        title       = data['title']       if 'title'       in data else None
+        description = data['description'] if 'description' in data else None
+        limitdata   = data['limit']       if 'limit'       in data else app.config['MAX_DATA']
+    else:
+        lat         = request.args.get('lat', default=None, type=float)
+        lng         = request.args.get('lng', default=None, type=float)
+        title       = request.args.get('title', default=None, type=str)
+        description = request.args.get('description', default=None, type=str)
+        limitdata   = request.args.get('limit', default=app.config['MAX_DATA'], type=int)
+        location = None if (lat == None and lng == None) else [lat, lng] 
+
+    # パラメータを元にクエリを作成
+    if location != None:
+        check_location(location, result)
+        query['location'] = { '$near': location}
+    if title != None:
+        if isinstance(title, str):
+            query['title'] = re.compile(title)
         else:
             result['isSave'] = 11
             result['errorstr'] = 'titleが文字列ではありません。'
 
-    if 'description' in data:
-        if isinstance(data['description'], str):
-            query['description'] = re.compile(data['description'])
+    if description != None:
+        if isinstance(description, str):
+            query['description'] = re.compile(description)
         else:
             result['isSave'] = 12
             result['errorstr'] = 'descriptionが文字列ではありません。'
-    if 'limit' in data:
-        if isinstance(data['limit'], int): 
-            limitdata = data['limit']
+    if limitdata != None:
+        if isinstance(limitdata, int): 
+            if not(1 <= limitdata and limitdata <= 1000):
+                result['isSave'] = 13
+                result['errorstr'] = 'limitが1〜' + str(app.config['MAX_DATA']) + 'ではありません。'
         else:
-            result['isSave'] = 13
-            result['errorstr'] = 'limitが1〜' + str(limit) + 'ではありません。'
+            result['isSave'] = 14
+            result['errorstr'] = 'limitが整数ではありません。'
     
     if result['isSave'] == 0:
         print(query)
