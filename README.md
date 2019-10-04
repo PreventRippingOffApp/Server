@@ -84,7 +84,7 @@ pip install -r requirements.txt
 {
     "location" : [1, 1],
     "title": "aiueo",
-	"description: "kakikukeko"
+    "description": "kakikukeko"
 }
 ```
 
@@ -92,7 +92,7 @@ pip install -r requirements.txt
 
 ```
 {
-	"errorstr": null,
+    "errorstr": null,
     "isSave": 0
 }
 ```
@@ -111,25 +111,39 @@ pip install -r requirements.txt
 
 ```
 {
-	"errorstr": "locationが数値ではありません。",
+    "errorstr": "locationが数値ではありません。",
     "isSave": 4
 }
 ```
 
 ### 情報の送信
 
-アプリケーションから送られてきたリクエストを元に、これまで保存してきた情報を返す。アプリケーション側で可能な指定は以下の通り。
+アプリケーションから送られてきたリクエストを元に、これまで保存してきた情報を返す。各方法で指定された情報を `/sendLocation` にjson形式で送信することで、情報を送信する。サーバでは、送られてきた情報を処理し、以下の内容が含まれた情報を返す。
+
+- isSave: 情報が保存されたかを表す。0であれば保存され、0以外であれば保存されていない。
+- errorstr: isSaveが0でない場合に、エラーとなった原因を記載する。
+- locationData: アプリケーションの指定を元に抽出した位置情報の配列
+
+#### POST
+
+アプリケーション側で可能な指定は以下の通り。
 
 - (任意)location:    緯度・経度を配列化したもの。形式としては `[緯度, 経度]` である。locationを設定した場合、レスポンスがlocationに近い位置情報を送る。
 - (任意)title:       位置情報のタイトル。titleを設定した場合、部分一致形式で該当するtitleを検索する。
 - (任意)description: 位置情報に関する説明。descriptionを設定した場合、部分一致形式で該当するdescriptionを検索する。
 - (任意)limit:       レスポンスを送る際の、情報の件数を指定できる。デフォルトは100であり、0〜1000まで指定可能。
 
-上記情報を `/sendLocation` にjson形式で送信することで、情報を保存する。サーバでは、送られてきた情報を処理し、以下の内容が含まれた情報を返す。
+#### GET
 
-- isSave: 情報が保存されたかを表す。0であれば保存され、0以外であれば保存されていない。
-- errorstr: isSaveが0でない場合に、エラーとなった原因を記載する。
-- locationData: アプリケーションの指定を元に抽出した位置情報の配列
+アプリケーション側で指定可能な指定は以下の通り。
+
+- (任意)lat:         緯度
+- (任意)lng:         経度
+- (任意)title:       位置情報のタイトル。titleを設定した場合、部分一致形式で該当するtitleを検索する。
+- (任意)description: 位置情報に関する説明。descriptionを設定した場合、部分一致形式で該当するdescriptionを検索する。
+- (任意)limit:       レスポンスを送る際の、情報の件数を指定できる。デフォルトは100であり、0〜1000まで指定可能。
+
+latとlngは、POSTのlocationに該当する。どちらか一方の値のみを渡すとエラーとなる。
 
 #### リクエスト/レスポンス例
 
@@ -146,7 +160,11 @@ pip install -r requirements.txt
 リクエスト
 
 ```
+# POST
 {}
+
+# GET
+curl "http://localhost:5000/sendLocation"
 ```
 
 レスポンス
@@ -168,9 +186,13 @@ pip install -r requirements.txt
 リクエスト
 
 ```
+# POST
 {
     "location" : [1, 1],
 }
+
+# GET
+curl "http://localhost:5000/sendLocation?lat=1&lng=1"
 ```
 
 レスポンス
@@ -192,9 +214,13 @@ pip install -r requirements.txt
 リクエスト
 
 ```
+# POST
 {
     "location" : ["a", 1],
 }
+
+# GET
+curl "http://localhost:5000/sendLocation?lat=a&lng=1"
 ```
 
 レスポンス
@@ -212,9 +238,13 @@ pip install -r requirements.txt
 リクエスト
 
 ```
+# POST
 {
     "title": "def"
 }
+
+# GET
+curl "http://localhost:5000/sendLocation?title=def"
 ```
 
 レスポンス
