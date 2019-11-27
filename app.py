@@ -12,7 +12,7 @@ app.config['JSON_AS_ASCII'] = False
 client = pymongo.MongoClient(app.config['HOST_MONGODB'], app.config['PORT_MONGODB'])
 db = client[app.config['NAME_DB']]
 collection = db[app.config['NAME_COLLECTION']]
-collection.create_index([('location', pymongo.GEO2D)])
+collection.create_index([('location', pymongo.GEOSPHERE)])
 
 def is_num(val):
     if val == None:
@@ -74,25 +74,28 @@ def send_location():
         title       = data['title']       if 'title'       in data else None
         description = data['description'] if 'description' in data else None
         limitdata   = data['limit']       if 'limit'       in data else app.config['MAX_DATA']
+        maxdistance = data['maxdistance'] if 'maxdistance' in data else None
     else:
         lat         = request.args.get('lat', default=None, type=float)
         lng         = request.args.get('lng', default=None, type=float)
         title       = request.args.get('title', default=None, type=str)
         description = request.args.get('description', default=None, type=str)
         limitdata   = request.args.get('limit', default=app.config['MAX_DATA'], type=int)
-        location = None if (lat == None and lng == None) else [lat, lng] 
+        maxdistance = request.args.get('maxdistance', default=None,type=float)
+        location    = None if (lat == None and lng == None) else [lat, lng] 
 
     # パラメータを元にクエリを作成
     if location != None:
         check_location(location, result)
-        query['location'] = { '$near': location}
+    else:
+        result['isSave'] = 1
+        result['errorstr'] = 'locationがありません。'
     if title != None:
         if isinstance(title, str):
             query['title'] = re.compile(title)
         else:
             result['isSave'] = 11
             result['errorstr'] = 'titleが文字列ではありません。'
-
     if description != None:
         if isinstance(description, str):
             query['description'] = re.compile(description)
@@ -107,15 +110,22 @@ def send_location():
         else:
             result['isSave'] = 14
             result['errorstr'] = 'limitが整数ではありません。'
-    
+    if maxdistance != None and result['isSave'] == 0:
+        if not is_num(maxdistance): 
+            result['isSave'] = 15
+            result['errorstr'] = 'maxdistanceが数値ではありません。'
     if result['isSave'] == 0:
-        print(query)
+        if maxdistance == None:
+            query['location'] = {
+                '$near': {'$geometry': {'type':'Point', 'coordinates': [5, 5]}}
+            }
+        else:
+            query['location'] = {
+                '$geoWithin': {'$centerSphere': [location, maxdistance / 6378.137]}
+            }
         result['locationData'] = list(collection.find(query, {'_id': False}).limit(limitdata))
-        print(result['locationData'])
     
     return jsonify(result)
-
-
 
 
 @app.route('/saveLocation', methods=['POST'])
