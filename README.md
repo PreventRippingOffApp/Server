@@ -128,20 +128,22 @@ pip install -r requirements.txt
 
 アプリケーション側で可能な指定は以下の通り。
 
-- (任意)location:    緯度・経度を配列化したもの。形式としては `[緯度, 経度]` である。locationを設定した場合、レスポンスがlocationに近い位置情報を送る。
+- (必須)location:    緯度・経度を配列化したもの。形式としては `[緯度, 経度]` である。locationを設定した場合、レスポンスがlocationに近い位置情報を送る。
 - (任意)title:       位置情報のタイトル。titleを設定した場合、部分一致形式で該当するtitleを検索する。
 - (任意)description: 位置情報に関する説明。descriptionを設定した場合、部分一致形式で該当するdescriptionを検索する。
 - (任意)limit:       レスポンスを送る際の、情報の件数を指定できる。デフォルトは100であり、0〜1000まで指定可能。
+- (任意)maxdistance: 登録されているlocationとリクエストされたlocationの最大の距離(単位:km)。指定した場合、maxdistanceより遠くにあるlocationは送信されない。
 
 #### GET
 
 アプリケーション側で指定可能な指定は以下の通り。
 
-- (任意)lat:         緯度
-- (任意)lng:         経度
+- (必須)lat:         緯度
+- (必須)lng:         経度
 - (任意)title:       位置情報のタイトル。titleを設定した場合、部分一致形式で該当するtitleを検索する。
 - (任意)description: 位置情報に関する説明。descriptionを設定した場合、部分一致形式で該当するdescriptionを検索する。
 - (任意)limit:       レスポンスを送る際の、情報の件数を指定できる。デフォルトは100であり、0〜1000まで指定可能。
+- (任意)maxdistance: 登録されているlocationとリクエストされたlocationの最大の距離(単位:km)。指定した場合、maxdistanceより遠くにあるlocationは送信されない。
 
 latとlngは、POSTのlocationに該当する。どちらか一方の値のみを渡すとエラーとなる。
 
@@ -171,13 +173,9 @@ curl "http://localhost:5000/sendLocation"
 
 ```
 {
-    "errorstr": null,
-    "isSave": 0,
-    "locationData":[
-        {"description":"kakikukeko","location":[3,8],"title":"aiueo"},
-        {"description":"hijklmn","location":[1,1],"title":"abcdefg"},
-        {"description":null,"location":[5,5],"title":null}
-    ]
+	"errorstr":"locationがありません。",
+	"isSave":1,
+	"locationData":null
 }
 ```
 
@@ -202,10 +200,9 @@ curl "http://localhost:5000/sendLocation?lat=1&lng=1"
     "errorstr": null,
     "isSave": 0,
     "locationData":[
-        {"description":"hijklmn","location":[1,1],"title":"abcdefg"},
         {"description":null,"location":[5,5],"title":null},
-        {"description":"kakikukeko","location":[3,8],"title":"aiueo"}
-    ]
+        {"description":"kakikukeko","location":[3,8],"title":"aiueo"},
+        {"description":"hijklmn","location":[1,1],"title":"abcdefg"}
 }
 ```
 
@@ -240,11 +237,12 @@ curl "http://localhost:5000/sendLocation?lat=a&lng=1"
 ```
 # POST
 {
+    "location": [1, 1],
     "title": "def"
 }
 
 # GET
-curl "http://localhost:5000/sendLocation?title=def"
+curl "http://localhost:5000/sendLocation?lat=1&lng=1&title=def"
 ```
 
 レスポンス
@@ -259,4 +257,30 @@ curl "http://localhost:5000/sendLocation?title=def"
 }
 ```
 
+##### 例5
 
+リクエスト
+
+```
+# POST
+{
+    "location": [5,5],
+    "maxdistance": 400.6
+}
+
+# GET
+curl "http://localhost:5000/sendLocation?lat=5&lng=5&maxdistance=400.6"
+```
+
+レスポンス
+
+```
+{
+    "errorstr":null,
+    "isSave":0,
+    "locationData":[
+        {"description":null,"location":[5,5],"title":null},
+        {"description":"kakikukeko","location":[3,8],"title":"aiueo"}
+    ]
+}
+```
