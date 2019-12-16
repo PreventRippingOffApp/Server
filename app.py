@@ -12,7 +12,8 @@ app.config['JSON_AS_ASCII'] = False
 client = pymongo.MongoClient(app.config['HOST_MONGODB'], app.config['PORT_MONGODB'])
 db = client[app.config['NAME_DB']]
 collection = db[app.config['NAME_COLLECTION']]
-collection.create_index([('location', pymongo.GEOSPHERE)])
+#collection.create_index([('location', pymongo.GEOSPHERE)])
+collection.create_index([('location', pymongo.GEO2D)])
 
 def is_num(val):
     if val == None:
@@ -87,6 +88,7 @@ def send_location():
     # パラメータを元にクエリを作成
     if location != None:
         check_location(location, result)
+        location = [location[1], location[0]]
     else:
         result['isSave'] = 1
         result['errorstr'] = 'locationがありません。'
@@ -116,9 +118,7 @@ def send_location():
             result['errorstr'] = 'maxdistanceが数値ではありません。'
     if result['isSave'] == 0:
         if maxdistance == None:
-            query['location'] = {
-                '$near': {'$geometry': {'type':'Point', 'coordinates': [5, 5]}}
-            }
+            query['location'] = {'$near': location}
         else:
             query['location'] = {
                 '$geoWithin': {'$centerSphere': [location, maxdistance / 6378.137]}
@@ -149,6 +149,7 @@ def save_location():
         result['errorstr'] = 'locationがありません。'
 
     if result['isSave'] == 0:
+        data['location'] = [data['location'][1], data['location'][0]]
         insertData = {
             'location': data['location'],
             'title': None,
