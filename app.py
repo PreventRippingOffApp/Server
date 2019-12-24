@@ -151,11 +151,12 @@ def send_location():
         # パラメータを元にクエリを作成
     if location != None:
         check_location(location, result)
+        location = [location[1], location[0]]
     else:
         result['errorstr'] = 'locationがありません。'
         return jsonify(result)
     query['location'] = {
-        '$near': {'$geometry': {'type':'Point', 'coordinates': [5, 5]}}
+        '$near': {'$geometry': {'type':'Point', 'coordinates': location}}
     }
     locationData = list(collection.find(query, {'_id': False})
     result['risk'] = len(locationData)
