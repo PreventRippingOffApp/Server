@@ -128,7 +128,7 @@ def send_location():
     return jsonify(result)
 
 @app.route('/risk', methods=['GET', 'POST'])
-def send_location():
+def risk():
     result = {
         'risk': 0,
     }
@@ -156,9 +156,9 @@ def send_location():
         result['errorstr'] = 'locationがありません。'
         return jsonify(result)
     query['location'] = {
-        '$near': {'$geometry': {'type':'Point', 'coordinates': location}}
+        '$geoWithin': {'$centerSphere': [location, 1 / 6378.137]}
     }
-    locationData = list(collection.find(query, {'_id': False})
+    locationData = list(collection.find(query, {'_id': False}))
     result['risk'] = len(locationData)
 
     return jsonify(result)
