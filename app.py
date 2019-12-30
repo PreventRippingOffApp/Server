@@ -70,7 +70,7 @@ def send_location():
             result['isSave'] = 100
             result['errorstr'] = 'jsonが異常です。'
             return jsonify(result)
-        
+
         location    = data['location']    if 'location'    in data else None
         title       = data['title']       if 'title'       in data else None
         description = data['description'] if 'description' in data else None
@@ -83,7 +83,7 @@ def send_location():
         description = request.args.get('description', default=None, type=str)
         limitdata   = request.args.get('limit', default=app.config['MAX_DATA'], type=int)
         maxdistance = request.args.get('maxdistance', default=None,type=float)
-        location    = None if (lat == None and lng == None) else [lat, lng] 
+        location    = None if (lat == None and lng == None) else [lat, lng]
 
     # パラメータを元にクエリを作成
     if location != None:
@@ -105,7 +105,7 @@ def send_location():
             result['isSave'] = 12
             result['errorstr'] = 'descriptionが文字列ではありません。'
     if limitdata != None:
-        if isinstance(limitdata, int): 
+        if isinstance(limitdata, int):
             if not(1 <= limitdata and limitdata <= 1000):
                 result['isSave'] = 13
                 result['errorstr'] = 'limitが1〜' + str(app.config['MAX_DATA']) + 'ではありません。'
@@ -113,7 +113,7 @@ def send_location():
             result['isSave'] = 14
             result['errorstr'] = 'limitが整数ではありません。'
     if maxdistance != None and result['isSave'] == 0:
-        if not is_num(maxdistance): 
+        if not is_num(maxdistance):
             result['isSave'] = 15
             result['errorstr'] = 'maxdistanceが数値ではありません。'
     if result['isSave'] == 0:
@@ -124,9 +124,44 @@ def send_location():
                 '$geoWithin': {'$centerSphere': [location, maxdistance / 6378.137]}
             }
         result['locationData'] = list(collection.find(query, {'_id': False}).limit(limitdata))
-    
+
     return jsonify(result)
 
+@app.route('/risk', methods=['GET', 'POST'])
+def risk():
+    result = {
+        'risk': 0,
+    }
+    query = {}
+
+    # パラメータ抽出
+    if request.method == 'POST':
+        data = check_json(request.data)
+        if data == None:
+            result['errorstr'] = 'jsonが異常です。'
+            return jsonify(result)
+
+        location    = data['location']    if 'location'    in data else None
+        description = data['description'] if 'description' in data else None
+    else:
+        lat         = request.args.get('lat', default=None, type=float)
+        lng         = request.args.get('lng', default=None, type=float)
+        location    = None if (lat == None and lng == None) else [lat, lng]
+
+        # パラメータを元にクエリを作成
+    if location != None:
+        check_location(location, result)
+        location = [location[1], location[0]]
+    else:
+        result['errorstr'] = 'locationがありません。'
+        return jsonify(result)
+    query['location'] = {
+        '$geoWithin': {'$centerSphere': [location, 1 / 6378.137]}
+    }
+    locationData = list(collection.find(query, {'_id': False}))
+    result['risk'] = len(locationData)
+
+    return jsonify(result)
 
 @app.route('/saveLocation', methods=['POST'])
 def save_location():
@@ -163,7 +198,7 @@ def save_location():
         collection.insert_one(insertData)
 
     return jsonify(result)
-        
+
 
 @app.route('/')
 @app.route('/index')
