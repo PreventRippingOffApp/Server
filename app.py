@@ -118,7 +118,9 @@ def send_location():
             result['errorstr'] = 'maxdistanceが数値ではありません。'
     if result['isSave'] == 0:
         if maxdistance == None:
-            query['location'] = {'$near': location}
+            query['location'] = {
+                '$geoWithin': {'$centerSphere': [location, 1 / 6378.137]}
+            }
         else:
             query['location'] = {
                 '$geoWithin': {'$centerSphere': [location, maxdistance / 6378.137]}
