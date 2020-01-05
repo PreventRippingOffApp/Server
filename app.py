@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import pymongo
 import json
 import re
+import os
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
@@ -9,9 +10,15 @@ app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
 # Setting Database
-client = pymongo.MongoClient(app.config['HOST_MONGODB'], app.config['PORT_MONGODB'])
-db = client[app.config['NAME_DB']]
-collection = db[app.config['NAME_COLLECTION']]
+mongodb_setting = {
+    'host': os.getenv('HOST_MONGODB', app.config['HOST_MONGODB']),
+    'port': os.getenv('PORT_MONGODB', app.config['PORT_MONGODB']),
+    'db': os.getenv('NAME_DB', app.config['NAME_DB']),
+    'collection': os.getenv('NAME_COLLECTION', app.config['NAME_COLLECTION'])
+}
+client = pymongo.MongoClient(mongodb_setting['host'], mongodb_setting['port'])
+db = client[mongodb_setting['db']]
+collection = db[mongodb_setting['collection']]
 #collection.create_index([('location', pymongo.GEOSPHERE)])
 collection.create_index([('location', pymongo.GEO2D)])
 

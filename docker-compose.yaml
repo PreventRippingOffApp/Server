@@ -1,0 +1,15 @@
+version: "2"
+services:
+  app:
+    build: .
+    restart: always
+    ports:
+    - 5000:5000
+    environment:
+      HOST_MONGODB: mongo
+    volumes:
+    - ./mongo/db:/data/db
+    - ./mongo/configdb:/data/configdb
+  mongo:
+    image: mongo
+    restart: always
