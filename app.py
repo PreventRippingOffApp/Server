@@ -4,6 +4,7 @@ from datetime import datetime
 import pymongo
 import json
 import re
+import os
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
@@ -11,9 +12,15 @@ app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
 # Setting Database
-client = pymongo.MongoClient(app.config['HOST_MONGODB'], app.config['PORT_MONGODB'])
-db = client[app.config['NAME_DB']]
-collection = db[app.config['NAME_COLLECTION']]
+mongodb_setting = {
+    'host': os.getenv('HOST_MONGODB', app.config['HOST_MONGODB']),
+    'port': os.getenv('PORT_MONGODB', app.config['PORT_MONGODB']),
+    'db': os.getenv('NAME_DB', app.config['NAME_DB']),
+    'collection': os.getenv('NAME_COLLECTION', app.config['NAME_COLLECTION'])
+}
+client = pymongo.MongoClient(mongodb_setting['host'], mongodb_setting['port'])
+db = client[mongodb_setting['db']]
+collection = db[mongodb_setting['collection']]
 #collection.create_index([('location', pymongo.GEOSPHERE)])
 collection.create_index([('location', pymongo.GEO2D)])
 
@@ -104,7 +111,7 @@ def send_location():
             result['isSave'] = 100
             result['errorstr'] = 'jsonが異常です。'
             return jsonify(result)
-        
+
         location    = data['location']    if 'location'    in data else None
         title       = data['title']       if 'title'       in data else None
         description = data['description'] if 'description' in data else None
@@ -117,7 +124,7 @@ def send_location():
         description = request.args.get('description', default=None, type=str)
         limitdata   = request.args.get('limit', default=app.config['MAX_DATA'], type=int)
         maxdistance = request.args.get('maxdistance', default=None,type=float)
-        location    = None if (lat == None and lng == None) else [lat, lng] 
+        location    = None if (lat == None and lng == None) else [lat, lng]
 
     # パラメータを元にクエリを作成
     if location != None:
@@ -139,7 +146,7 @@ def send_location():
             result['isSave'] = 12
             result['errorstr'] = 'descriptionが文字列ではありません。'
     if limitdata != None:
-        if isinstance(limitdata, int): 
+        if isinstance(limitdata, int):
             if not(1 <= limitdata and limitdata <= 1000):
                 result['isSave'] = 13
                 result['errorstr'] = 'limitが1〜' + str(app.config['MAX_DATA']) + 'ではありません。'
@@ -147,20 +154,57 @@ def send_location():
             result['isSave'] = 14
             result['errorstr'] = 'limitが整数ではありません。'
     if maxdistance != None and result['isSave'] == 0:
-        if not is_num(maxdistance): 
+        if not is_num(maxdistance):
             result['isSave'] = 15
             result['errorstr'] = 'maxdistanceが数値ではありません。'
     if result['isSave'] == 0:
         if maxdistance == None:
-            query['location'] = {'$near': location}
+            query['location'] = {
+                '$geoWithin': {'$centerSphere': [location, 1 / 6378.137]}
+            }
         else:
             query['location'] = {
                 '$geoWithin': {'$centerSphere': [location, maxdistance / 6378.137]}
             }
         result['locationData'] = list(collection.find(query, {'_id': False}).limit(limitdata))
-    
+
     return jsonify(result)
 
+@app.route('/risk', methods=['GET', 'POST'])
+def risk():
+    result = {
+        'risk': 0,
+    }
+    query = {}
+
+    # パラメータ抽出
+    if request.method == 'POST':
+        data = check_json(request.data)
+        if data == None:
+            result['errorstr'] = 'jsonが異常です。'
+            return jsonify(result)
+
+        location    = data['location']    if 'location'    in data else None
+        description = data['description'] if 'description' in data else None
+    else:
+        lat         = request.args.get('lat', default=None, type=float)
+        lng         = request.args.get('lng', default=None, type=float)
+        location    = None if (lat == None and lng == None) else [lat, lng]
+
+        # パラメータを元にクエリを作成
+    if location != None:
+        check_location(location, result)
+        location = [location[1], location[0]]
+    else:
+        result['errorstr'] = 'locationがありません。'
+        return jsonify(result)
+    query['location'] = {
+        '$geoWithin': {'$centerSphere': [location, 1 / 6378.137]}
+    }
+    locationData = list(collection.find(query, {'_id': False}))
+    result['risk'] = len(locationData)
+
+    return jsonify(result)
 
 @app.route('/saveLocation', methods=['POST'])
 def save_location():
@@ -197,7 +241,7 @@ def save_location():
         collection.insert_one(insertData)
 
     return jsonify(result)
-        
+
 
 @app.route('/')
 @app.route('/index')
