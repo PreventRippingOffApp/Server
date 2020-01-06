@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify
+from werkzeug.utils import secure_filename
+from datetime import datetime
 import pymongo
 import json
 import re
@@ -59,6 +61,38 @@ def check_location(location, result):
         result['isSave'] = 6
         result['errorstr'] = '経度の値が異常です。'
     return
+
+
+@app.route('/saveAudio', methods=['POST'])
+def save_audio():
+    result = {
+        'isSave': 0,
+        'errorstr': None,
+    }
+
+    # token: 固有Token
+    # backupKey: バックアップキー
+    if 'audioFile' not in request.files:
+        result['isSave']   = 21
+        result['errorstr'] = 'audioFileがありません。'
+    elif 'token' not in request.args:
+        result['isSave']   = 22
+        result['errorstr'] = 'tokenがありません。'
+    elif 'backupKey' not in request.args:
+        result['isSave']   = 23
+        result['errorstr'] = 'backupKeyがありません。'
+    else:
+        # 認証関連の処理
+        pass
+
+    if result['isSave'] == 0:
+        audioFile = request.files['audioFile']
+        updir    = app.config['UPLOAD_DIR'] + '/' + token
+        filename = datetime.now().strftime("%Y%m%d%H%M%S_") + secure_filename(audioFile.filename)
+        if not os.path.isdir(updir):
+            os.makedirs(updir)
+        audioFile.save(os.path.join(updir, filename))
+    return jsonify(result)
 
 
 @app.route('/sendLocation', methods=['GET', 'POST'])
