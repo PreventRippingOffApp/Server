@@ -4,6 +4,7 @@ class Product(object):
     NAME_DB = 'sechackExpressionB'
     NAME_COLLECTION = 'ripoffLocations'
     MAX_DATA = 1000
+    UPLOAD_DIR = 'uploads'
 
 
 class Test(object):
@@ -12,3 +13,4 @@ class Test(object):
     NAME_DB = 'testDB'
     NAME_COLLECTION = 'testCollection'
     MAX_DATA = 1000
+    UPLOAD_DIR = 'uploads'

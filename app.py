@@ -64,6 +64,7 @@ def save_audio():
     }
 
     # token: 固有Token
+    # backupKey: バックアップキー
     if 'audioFile' not in request.files:
         result['isSave']   = 21
         result['errorstr'] = 'audioFileがありません。'
@@ -92,6 +93,7 @@ def send_location():
     result = {
         'isSave': 0,
         'errorstr': None,
+        'locationData': None
     }
     query = {}
 
