@@ -5,6 +5,10 @@ import pymongo
 import json
 import re
 import os
+import geopandas as gpd
+from geopandas.geoseries import *
+from shapely.geometry import Point
+
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True)
@@ -23,6 +27,10 @@ db = client[mongodb_setting['db']]
 collection = db[mongodb_setting['collection']]
 #collection.create_index([('location', pymongo.GEOSPHERE)])
 collection.create_index([('location', pymongo.GEO2D)])
+
+# Setting revgeo
+shpfile = gpd.read_file(app.config['SHP_PATH'])
+geometry = shpfile['geometry']
 
 def is_num(val):
     if val == None:
@@ -61,6 +69,52 @@ def check_location(location, result):
         result['isSave'] = 6
         result['errorstr'] = '経度の値が異常です。'
     return
+
+
+@app.route('/searchPrefecture', methods=['GET', 'POST'])
+def search_Prefecture():
+    result = {
+        'isSave': 0,
+        'errorstr': None,
+        'prefectureID': "0",
+        'prefecture': None
+    }
+    query = {}
+
+    # パラメータ抽出
+    if request.method == 'POST':
+        data = check_json(request.data)
+        if data == None:
+            result['isSave'] = 100
+            result['errorstr'] = 'jsonが異常です。'
+            return jsonify(result)
+
+        location    = data['location']    if 'location'    in data else None
+    else:
+        lat         = request.args.get('lat', default=None, type=float)
+        lng         = request.args.get('lng', default=None, type=float)
+        location    = None if (lat == None and lng == None) else [lat, lng]
+
+    # パラメータを元にクエリを作成
+    if location != None:
+        check_location(location, result)
+    else:
+        result['isSave'] = 1
+        result['errorstr'] = 'locationがありません。'
+
+    if result['isSave'] == 0:
+        point = Point(location[1], location[0])
+
+        points = geometry.contains(point)
+        row = points[points == True].index
+
+        geos = shpfile.loc[row]
+
+        if geos.empty == False:
+            result['prefectureID'] = geos['JCODE'].to_string(index=False).strip()[0:2]
+            result['prefecture']   = geos['KEN'].to_string(index=False).strip()
+    
+    return jsonify(result)
 
 
 @app.route('/saveAudio', methods=['POST'])
