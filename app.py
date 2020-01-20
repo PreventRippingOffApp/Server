@@ -88,6 +88,58 @@ def revgeo(lat, lng):
             return geos['JCODE'].to_string(index=False).strip()[0:2], geos['KEN'].to_string(index=False).strip()
 
 
+@app.route('/sendAudioList', methods=['GET', 'POST'])
+def send_audio_list():
+    result = {
+        'isSave': 0,
+        'errorstr': None,
+        'audioList': None
+    }
+    query = {}
+
+    # パラメータ抽出
+    if request.method == 'POST':
+        data = check_json(request.data)
+        if data == None:
+            result['isSave'] = 100
+            result['errorstr'] = 'jsonが異常です。'
+            return jsonify(result)
+
+        token     = data['token'] if 'token' in data else None
+        limitdata = data['limit'] if 'limit' in data else app.config['MAX_DATA']
+        skip      = data['skip']  if 'skip'  in data else 0
+    else:
+        token     = request.args.get('token', default=None,                   type=str)
+        limitdata = request.args.get('limit', default=app.config['MAX_DATA'], type=int)
+        skip      = request.args.get('skip',  default=0,                      type=int)
+
+    # パラメータを元にクエリを作成
+    if token != None:
+        query['token'] = token
+    if limitdata != None:
+        if isinstance(limitdata, int):
+            if not(1 <= limitdata and limitdata <= 1000):
+                result['isSave'] = 13
+                result['errorstr'] = 'limitが1〜' + str(app.config['MAX_DATA']) + 'ではありません。'
+        else:
+            result['isSave'] = 14
+            result['errorstr'] = 'limitが整数ではありません。'
+    if skip != None:
+        if isinstance(skip, int):
+            if skip < 0:
+                result['isSave'] = 32
+                result['errorstr'] = 'skipが0以上ではありません。'
+        else:
+            result['isSave'] = 31
+            result['errorstr'] = 'skipが整数ではありません'
+
+    
+    if result['isSave'] == 0:
+        result['audioList'] = list(audiocollection.find(query, {'_id': False}).skip(skip).limit(limitdata))
+
+    return jsonify(result)
+
+
 @app.route('/searchPrefecture', methods=['GET', 'POST'])
 def search_Prefecture():
     result = {
@@ -96,7 +148,6 @@ def search_Prefecture():
         'prefectureID': "0",
         'prefecture': None
     }
-    query = {}
 
     # パラメータ抽出
     if request.method == 'POST':
@@ -175,7 +226,7 @@ def save_audio():
             'time': uptime.strftime("%Y/%m/%d %H:%M:%S"),
             'path': os.path.join(updir, filename),
             'prefecture': prefecture,
-			'token': token
+            'token': token
         }
         print(query)
         audiocollection.insert_one(query)
