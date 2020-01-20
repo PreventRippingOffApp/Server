@@ -5,6 +5,7 @@ import pymongo
 import json
 import re
 import os
+import ast
 import geopandas as gpd
 from geopandas.geoseries import *
 from shapely.geometry import Point
@@ -20,13 +21,16 @@ mongodb_setting = {
     'host': os.getenv('HOST_MONGODB', app.config['HOST_MONGODB']),
     'port': os.getenv('PORT_MONGODB', app.config['PORT_MONGODB']),
     'db': os.getenv('NAME_DB', app.config['NAME_DB']),
-    'collection': os.getenv('NAME_COLLECTION', app.config['NAME_COLLECTION'])
+    'collection': os.getenv('NAME_COLLECTION', app.config['NAME_COLLECTION']),
+    'audiocollection': os.getenv('NAME_AUDIO_COLLECTION', app.config['NAME_AUDIO_COLLECTION'])
 }
 client = pymongo.MongoClient(mongodb_setting['host'], mongodb_setting['port'])
 db = client[mongodb_setting['db']]
 collection = db[mongodb_setting['collection']]
 #collection.create_index([('location', pymongo.GEOSPHERE)])
 collection.create_index([('location', pymongo.GEO2D)])
+audiocollection = db[mongodb_setting['audiocollection']]
+audiocollection.create_index([('location', pymongo.GEO2D)])
 
 # Setting revgeo
 shpfile = gpd.read_file(app.config['SHP_PATH'])
@@ -70,6 +74,19 @@ def check_location(location, result):
         result['errorstr'] = '経度の値が異常です。'
     return
 
+def revgeo(lat, lng):
+        point = Point(lng, lat)
+
+        points = geometry.contains(point)
+        row = points[points == True].index
+
+        geos = shpfile.loc[row]
+
+        if geos.empty == True:
+            return "0", None
+        else:
+            return geos['JCODE'].to_string(index=False).strip()[0:2], geos['KEN'].to_string(index=False).strip()
+
 
 @app.route('/searchPrefecture', methods=['GET', 'POST'])
 def search_Prefecture():
@@ -103,16 +120,7 @@ def search_Prefecture():
         result['errorstr'] = 'locationがありません。'
 
     if result['isSave'] == 0:
-        point = Point(location[1], location[0])
-
-        points = geometry.contains(point)
-        row = points[points == True].index
-
-        geos = shpfile.loc[row]
-
-        if geos.empty == False:
-            result['prefectureID'] = geos['JCODE'].to_string(index=False).strip()[0:2]
-            result['prefecture']   = geos['KEN'].to_string(index=False).strip()
+        prefectureID, prefecutre = revgeo(location[1], location[0])
     
     return jsonify(result)
 
@@ -129,23 +137,47 @@ def save_audio():
     if 'audioFile' not in request.files:
         result['isSave']   = 21
         result['errorstr'] = 'audioFileがありません。'
-    elif 'token' not in request.args:
+    elif 'token' not in request.form:
         result['isSave']   = 22
         result['errorstr'] = 'tokenがありません。'
-    elif 'backupKey' not in request.args:
+    elif 'backupKey' not in request.form:
         result['isSave']   = 23
         result['errorstr'] = 'backupKeyがありません。'
     else:
         # 認証関連の処理
         pass
 
+    if 'location' in request.form:
+        location = request.form.get('location', default=None, type=list)
+    else:
+        lat      = request.form.get('lat', default=None, type=float)
+        lng      = request.form.get('lng', default=None, type=float)
+        location = None if (lat == None and lng == None) else [lat, lng]
+    
+    if location is not None:
+        check_location(location, result)
+    else:
+        result['isSave'] = 1
+        result['errorstr'] = 'locationがありません。'
+
     if result['isSave'] == 0:
         audioFile = request.files['audioFile']
-        updir    = app.config['UPLOAD_DIR'] + '/' + token
-        filename = datetime.now().strftime("%Y%m%d%H%M%S_") + secure_filename(audioFile.filename)
+        updir     = app.config['UPLOAD_DIR']
+        uptime    = datetime.now()
+        filename  = uptime.strftime("%Y%m%d%H%M%S_") + secure_filename(audioFile.filename)
         if not os.path.isdir(updir):
             os.makedirs(updir)
         audioFile.save(os.path.join(updir, filename))
+
+        prefectureID, prefecture = revgeo(location[0], location[1])
+        query = {
+            'location': location[::-1],
+            'time': uptime.strftime("%Y/%m/%d %H:%M:%S"),
+            'path': os.path.join(updir, filename),
+            'prefecture': prefecture
+        }
+        print(query)
+        audiocollection.insert_one(query)
     return jsonify(result)
 
 
