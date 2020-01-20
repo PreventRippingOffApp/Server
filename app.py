@@ -12,7 +12,7 @@ from shapely.geometry import Point
 
 
 # Setting Flask
-app = Flask(__name__, instance_relative_config=True)
+app = Flask(__name__, instance_relative_config=True, static_url_path='/uploads', static_folder='./uploads')
 app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
