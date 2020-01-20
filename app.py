@@ -76,7 +76,7 @@ def search_Prefecture():
     result = {
         'isSave': 0,
         'errorstr': None,
-        'prefectureID': 0,
+        'prefectureID': "0",
         'prefecture': None
     }
     query = {}
@@ -115,8 +115,6 @@ def search_Prefecture():
             result['prefecture']   = geos['KEN'].to_string(index=False).strip()
     
     return jsonify(result)
-    
-
 
 
 @app.route('/saveAudio', methods=['POST'])

@@ -284,7 +284,7 @@ curl "http://localhost:5000/sendLocation?lat=5&lng=5&maxdistance=400.6"
 
 - isSave: 情報が保存されたかを表す。0であれば保存され、0以外であれば保存されていない。
 - errorstr: isSaveが0でない場合に、エラーとなった原因を記載する。
-- prefectureID: 県ID。位置情報に該当する都道府県がない場合、0となる。
+- prefectureID: 県ID。位置情報に該当する都道府県がない場合、"0"となる。
 - prefecture: 県の名前。位置情報に該当する都道府県がない場合Noneとなる。
 
 #### POST

@@ -5,7 +5,7 @@ class Product(object):
     NAME_COLLECTION = 'ripoffLocations'
     MAX_DATA = 1000
     UPLOAD_DIR = 'uploads'
-    SHP_PATH = 'instance/japan_ver81.shp'
+    SHP_PATH = 'instance/shp_japan/japan_ver81.shp'
 
 
 class Test(object):
@@ -15,4 +15,4 @@ class Test(object):
     NAME_COLLECTION = 'testCollection'
     MAX_DATA = 1000
     UPLOAD_DIR = 'uploads'
-    SHP_PATH = 'instance/japan_ver81.shp'
+    SHP_PATH = 'instance/shp_japan/japan_ver81.shp'
