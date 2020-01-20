@@ -213,7 +213,7 @@ def save_audio():
 
     if result['isSave'] == 0:
         audioFile = request.files['audioFile']
-        updir     = app.config['UPLOAD_DIR']
+        updir     = app.config['UPLOAD_DIR'] + '/' + request.form['token']
         uptime    = datetime.now()
         filename  = uptime.strftime("%Y%m%d%H%M%S_") + secure_filename(audioFile.filename)
         if not os.path.isdir(updir):
@@ -226,9 +226,8 @@ def save_audio():
             'time': uptime.strftime("%Y/%m/%d %H:%M:%S"),
             'path': os.path.join(updir, filename),
             'prefecture': prefecture,
-            'token': token
+            'token': request.form['token']
         }
-        print(query)
         audiocollection.insert_one(query)
     return jsonify(result)
 
