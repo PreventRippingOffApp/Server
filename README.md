@@ -148,9 +148,9 @@ curl "http://localhost:5000/sendLocation"
 
 ```
 {
-	"errorstr":"locationがありません。",
-	"isSave":1,
-	"locationData":null
+    "errorstr":"locationがありません。",
+    "isSave":1,
+    "locationData":null
 }
 ```
 
@@ -272,11 +272,12 @@ curl "http://localhost:5000/sendLocation?lat=5&lng=5&maxdistance=400.6"
 
 アプリケーション側で可能な指定は以下の通り。
 
-- json
-	- (必須)token:       ユーザの固有トークン。
-	- (必須)backupKey:   バックアップキー。
+- param
+    - (必須)token:       ユーザの固有トークン。
+    - (必須)backupKey:   バックアップキー。
+    - (必須)location:    緯度・経度を配列化したもの。形式としては `[緯度, 経度]` である。locationを設定した場合、レスポンスがlocationに近い位置情報を送る。なお、locationの代わりに、latとlngをパラメータとして使用することも可能である。
 - file
-	- (必須)audioFile:   アップロードする音声ファイル。
+    - (必須)audioFile:   アップロードする音声ファイル。
 
 ### 位置情報→都道府県の検索
 
