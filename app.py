@@ -174,7 +174,8 @@ def save_audio():
             'location': location[::-1],
             'time': uptime.strftime("%Y/%m/%d %H:%M:%S"),
             'path': os.path.join(updir, filename),
-            'prefecture': prefecture
+            'prefecture': prefecture,
+			'token': token
         }
         print(query)
         audiocollection.insert_one(query)
