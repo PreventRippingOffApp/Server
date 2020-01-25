@@ -171,7 +171,7 @@ def search_Prefecture():
         result['errorstr'] = 'locationがありません。'
 
     if result['isSave'] == 0:
-        prefectureID, prefecutre = revgeo(location[1], location[0])
+        result['prefectureID'], result['prefecture'] = revgeo(location[0], location[1])
     
     return jsonify(result)
 
