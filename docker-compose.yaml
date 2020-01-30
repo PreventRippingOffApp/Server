@@ -8,8 +8,10 @@ services:
     environment:
       HOST_MONGODB: mongo
     volumes:
-    - ./mongo/db:/data/db
-    - ./mongo/configdb:/data/configdb
+      - ./uploads:/usr/src/app/uploads
   mongo:
     image: mongo
     restart: always
+    volumes:
+      - ./mongo/db:/data/db
+      - ./mongo/configdb:/data/configdb
