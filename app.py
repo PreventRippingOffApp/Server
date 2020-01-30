@@ -184,16 +184,12 @@ def save_audio():
     }
 
     # token: 固有Token
-    # backupKey: バックアップキー
     if 'audioFile' not in request.files:
         result['isSave']   = 21
         result['errorstr'] = 'audioFileがありません。'
     elif 'token' not in request.form:
         result['isSave']   = 22
         result['errorstr'] = 'tokenがありません。'
-    elif 'backupKey' not in request.form:
-        result['isSave']   = 23
-        result['errorstr'] = 'backupKeyがありません。'
     else:
         # 認証関連の処理
         pass
