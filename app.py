@@ -9,10 +9,14 @@ import ast
 import geopandas as gpd
 from geopandas.geoseries import *
 from shapely.geometry import Point
+from flask_cors import CORS
+
+
 
 
 # Setting Flask
 app = Flask(__name__, instance_relative_config=True, static_url_path='/uploads', static_folder='./uploads')
+CORS(app)
 app.config.from_object('config.Product')
 app.config['JSON_AS_ASCII'] = False
 
@@ -133,7 +137,7 @@ def send_audio_list():
             result['isSave'] = 31
             result['errorstr'] = 'skipが整数ではありません'
 
-    
+
     if result['isSave'] == 0:
         result['audioList'] = list(audiocollection.find(query, {'_id': False}).skip(skip).limit(limitdata))
 
@@ -172,7 +176,7 @@ def search_Prefecture():
 
     if result['isSave'] == 0:
         result['prefectureID'], result['prefecture'] = revgeo(location[0], location[1])
-    
+
     return jsonify(result)
 
 
@@ -200,7 +204,7 @@ def save_audio():
         lat      = request.form.get('lat', default=None, type=float)
         lng      = request.form.get('lng', default=None, type=float)
         location = None if (lat == None and lng == None) else [lat, lng]
-    
+
     if location is not None:
         check_location(location, result)
     else:
