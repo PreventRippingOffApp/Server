@@ -4,7 +4,7 @@ click-plugins==1.1.1
 cligj==0.5.0
 Fiona==1.8.13
 Flask==1.1.1
-flask-cors==3.0.8
+flask-cors==3.0.9
 geopandas==0.6.2
 itsdangerous==1.1.0
 Jinja2==2.10.1
